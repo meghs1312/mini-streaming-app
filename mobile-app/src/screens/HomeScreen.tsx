@@ -60,9 +60,12 @@ export default function HomeScreen({ navigation }: any) {
     let filtered = videos;
 
     if (searchQuery.trim()) {
-      filtered = filtered.filter(video =>
-        video.title.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+      filtered = filtered.filter(video => {
+        const query = searchQuery.toLowerCase();
+        const titleMatch = video.title.toLowerCase().includes(query);
+        const descriptionMatch = video.description?.toLowerCase().includes(query);
+        return titleMatch || descriptionMatch;
+      });
     }
 
     if (selectedTags.length > 0) {
