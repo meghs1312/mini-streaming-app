@@ -100,6 +100,9 @@ You should see:
 ```bash
 cd mobile-app
 npm install
+
+# Install required dependencies for JWT authentication and OAuth
+npm install @react-native-async-storage/async-storage expo-web-browser expo-linking
 ```
 
 **Start the development server:**
@@ -268,10 +271,6 @@ npm install
 3. Commit changes: `git commit -m 'Add feature'`
 4. Push to branch: `git push origin feature-name`
 5. Submit a pull request
-
-## 📄 License
-
-This project is licensed under the MIT License.
 
 ## 👨‍💻 Developer Notes
 
