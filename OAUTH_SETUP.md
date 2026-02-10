@@ -89,7 +89,46 @@ cd mobile-app
 npm install expo-web-browser expo-linking
 ```
 
-### Step 2: Configure App Scheme (Optional)
+### Step 2: Get Android Package Name and SHA-1 (For Google OAuth on Android)
+
+When setting up Google OAuth with **Application Type: Android**, you'll need:
+
+#### **Package Name**
+Use: `com.ministreaming.app` (or your custom package name)
+
+#### **SHA-1 Certificate Fingerprint**
+
+**For Development (Debug Keystore):**
+
+1. First, run your app once to generate the debug keystore:
+   ```bash
+   cd mobile-app
+   npm start
+   # Press 'a' to run on Android
+   ```
+
+2. Then get the SHA-1 fingerprint:
+   ```bash
+   keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android
+   ```
+
+3. Copy the **SHA1** value (looks like: `A1:B2:C3:D4:E5:F6:...`)
+
+4. Add it to your Google OAuth credentials in Google Cloud Console
+
+**For Production (Release Keystore):**
+
+When building for production, you'll need to generate a release keystore and get its SHA-1:
+
+```bash
+# Generate release keystore (do this once)
+keytool -genkey -v -keystore my-release-key.keystore -alias my-key-alias -keyalg RSA -keysize 2048 -validity 10000
+
+# Get SHA-1 from release keystore
+keytool -list -v -keystore my-release-key.keystore -alias my-key-alias
+```
+
+### Step 3: Configure App Scheme (Optional)
 
 If you want to customize the redirect URL scheme, update `app.json`:
 
