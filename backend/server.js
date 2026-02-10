@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const db = require('./src/config/db');
 const authRoutes = require('./src/routes/auth');
+const videoRoutes = require('./src/routes/videos');
 
 const app = express();
 
@@ -18,21 +19,18 @@ app.use((req, res, next) => {
 });
 
 app.use('/auth', authRoutes);
+app.use('/videos', videoRoutes);
 
 db.getConnection()
   .then(conn => {
     console.log('✅ MySQL connected');
     conn.release();
 
-    app.listen(5000, () =>
-      console.log('🚀 Server running on 5000')
-    );
+    app.listen(5000, '0.0.0.0', () => {
+      console.log('🚀 Server running on http://0.0.0.0:5000');
+    });
   })
   .catch(err => {
     console.error('❌ DB connection failed', err);
   });
-
-app.listen(5000, '0.0.0.0', () => {
-  console.log('Server running on 5000');
-});
 

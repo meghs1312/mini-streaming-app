@@ -9,6 +9,7 @@ import {
   StatusBar,
   Alert,
 } from 'react-native';
+import API from '../services/api';
 
 export default function RegisterScreen({ navigation }: any) {
   const [email, setEmail] = useState('');
@@ -16,8 +17,7 @@ export default function RegisterScreen({ navigation }: any) {
 
   const handleRegister = async () => {
     try {
-        console.log('Calling: http://10.0.2.2:5000/auth/login');
-      await API.post('/register', {
+      await API.post('/auth/register', {
         email,
         password,
       });

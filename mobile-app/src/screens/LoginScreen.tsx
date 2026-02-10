@@ -8,6 +8,7 @@ import {
   StatusBar,
   Alert,
 } from 'react-native';
+import API from '../services/api';
 
 export default function LoginScreen({ navigation }: any) {
   const [email, setEmail] = useState('');
@@ -15,15 +16,13 @@ export default function LoginScreen({ navigation }: any) {
 
   const handleLogin = async () => {
     try {
-      await API.post('/login', {
+      await API.post('/auth/login', {
         email,
         password,
       });
 
       Alert.alert('Login Success');
-
-      // later → navigate to Home screen
-      // navigation.replace('Home');
+      navigation.replace('Home');
 
     } catch (err: any) {
       Alert.alert('Error', 'Invalid credentials');
