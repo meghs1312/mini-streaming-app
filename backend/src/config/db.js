@@ -4,5 +4,5 @@ module.exports = mysql.createPool({
   host: 'localhost',
   user: 'root',
   password: 'Sanju@2004',
-  database: 'netflix'
+  database: 'mini_streaming_app'
 });
