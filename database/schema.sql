@@ -1,5 +1,5 @@
-CREATE DATABASE IF NOT EXISTS mini_streaming_app;
-USE mini_streaming_app;
+CREATE DATABASE IF NOT EXISTS netflix;
+USE netflix;
 
 CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
