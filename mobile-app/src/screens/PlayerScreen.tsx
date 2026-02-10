@@ -11,8 +11,9 @@ import {
   ScrollView,
 } from 'react-native';
 import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
+import * as ScreenOrientation from 'expo-screen-orientation';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 interface QualityOption {
   label: string;
@@ -31,6 +32,7 @@ export default function PlayerScreen({ route, navigation }: any) {
   const [currentQuality, setCurrentQuality] = useState('Auto');
   const [duration, setDuration] = useState(0);
   const [position, setPosition] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [availableQualities, setAvailableQualities] = useState<QualityOption[]>([
     { label: 'Auto', resolution: 'Adaptive' },
     { label: '1080p', resolution: '1920x1080' },
@@ -42,6 +44,11 @@ export default function PlayerScreen({ route, navigation }: any) {
   useEffect(() => {
     // Parse m3u8 manifest to get available qualities
     parseM3U8Manifest();
+    
+    // Cleanup: Reset orientation when component unmounts
+    return () => {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+    };
   }, []);
 
   const parseM3U8Manifest = async () => {
@@ -104,12 +111,27 @@ export default function PlayerScreen({ route, navigation }: any) {
     setShowControls(!showControls);
   };
 
+  const toggleFullscreen = async () => {
+    if (isFullscreen) {
+      // Exit fullscreen - return to portrait
+      await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+      setIsFullscreen(false);
+    } else {
+      // Enter fullscreen - switch to landscape
+      await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+      setIsFullscreen(true);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar hidden />
       
       <TouchableOpacity 
-        style={styles.videoContainer} 
+        style={[
+          styles.videoContainer,
+          isFullscreen && styles.videoContainerFullscreen
+        ]} 
         activeOpacity={1}
         onPress={toggleControls}
       >
@@ -141,12 +163,23 @@ export default function PlayerScreen({ route, navigation }: any) {
                 <Text style={styles.backButtonText}>← Back</Text>
               </TouchableOpacity>
               
-              <TouchableOpacity
-                style={styles.qualityButton}
-                onPress={() => setShowQualityMenu(true)}
-              >
-                <Text style={styles.qualityButtonText}>⚙️ {currentQuality}</Text>
-              </TouchableOpacity>
+              <View style={styles.topRightControls}>
+                <TouchableOpacity
+                  style={styles.qualityButton}
+                  onPress={() => setShowQualityMenu(true)}
+                >
+                  <Text style={styles.qualityButtonText}>⚙️ {currentQuality}</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={styles.fullscreenButton}
+                  onPress={toggleFullscreen}
+                >
+                  <Text style={styles.fullscreenButtonText}>
+                    {isFullscreen ? '⛶' : '⛶'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             <TouchableOpacity 
@@ -175,10 +208,12 @@ export default function PlayerScreen({ route, navigation }: any) {
         )}
       </TouchableOpacity>
 
-      <View style={styles.info}>
-        <Text style={styles.title}>{video.title}</Text>
-        <Text style={styles.description}>{video.description}</Text>
-      </View>
+      {!isFullscreen && (
+        <View style={styles.info}>
+          <Text style={styles.title}>{video.title}</Text>
+          <Text style={styles.description}>{video.description}</Text>
+        </View>
+      )}
 
       <Modal
         visible={showQualityMenu}
@@ -238,6 +273,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
     position: 'relative',
   },
+  videoContainerFullscreen: {
+    width: height,
+    height: width,
+  },
   video: {
     width: '100%',
     height: '100%',
@@ -264,6 +303,10 @@ const styles = StyleSheet.create({
     padding: 15,
     paddingTop: 40,
   },
+  topRightControls: {
+    flexDirection: 'row',
+    gap: 10,
+  },
   backButton: {
     backgroundColor: 'rgba(0,0,0,0.5)',
     paddingHorizontal: 15,
@@ -284,6 +327,17 @@ const styles = StyleSheet.create({
   qualityButtonText: {
     color: 'white',
     fontSize: 16,
+    fontWeight: 'bold',
+  },
+  fullscreenButton: {
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 5,
+  },
+  fullscreenButtonText: {
+    color: 'white',
+    fontSize: 18,
     fontWeight: 'bold',
   },
   playPauseButton: {
