@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import API from '../services/api';
+import { clearAll } from '../services/storage';
 
 interface Video {
   id: number;
@@ -86,6 +87,11 @@ export default function HomeScreen({ navigation }: any) {
     setSelectedTags([]);
   };
 
+  const handleLogout = async () => {
+    await clearAll();
+    navigation.replace('Login');
+  };
+
   const renderVideoCard = ({ item }: { item: Video }) => (
     <TouchableOpacity
       style={styles.videoCard}
@@ -129,6 +135,9 @@ export default function HomeScreen({ navigation }: any) {
       
       <View style={styles.header}>
         <Text style={styles.logo}>NETFLIX</Text>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <Text style={styles.logoutText}>Logout</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.searchSection}>
@@ -206,10 +215,24 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     paddingHorizontal: 20,
     backgroundColor: '#000',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   logo: {
     color: '#E50914',
     fontSize: 32,
+    fontWeight: 'bold',
+  },
+  logoutButton: {
+    backgroundColor: '#333',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  logoutText: {
+    color: 'white',
+    fontSize: 14,
     fontWeight: 'bold',
   },
   searchSection: {

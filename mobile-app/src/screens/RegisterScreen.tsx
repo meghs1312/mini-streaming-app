@@ -10,6 +10,8 @@ import {
   Alert,
 } from 'react-native';
 import API from '../services/api';
+import { loginWithGoogle, loginWithGitHub } from '../services/oauth';
+import { saveToken, saveUser } from '../services/storage';
 
 export default function RegisterScreen({ navigation }: any) {
   const [email, setEmail] = useState('');
@@ -17,16 +19,40 @@ export default function RegisterScreen({ navigation }: any) {
 
   const handleRegister = async () => {
     try {
-      await API.post('/auth/register', {
+      const response = await API.post('/auth/register', {
         email,
         password,
       });
 
+      const { token, user } = response.data;
+      await saveToken(token);
+      await saveUser(user);
+
       Alert.alert('Success', 'Account created');
-      navigation.navigate('Login');
+      navigation.replace('Home');
 
     } catch (err: any) {
       Alert.alert('Error', err.response?.data?.msg || 'Registration failed');
+    }
+  };
+
+  const handleGoogleSignup = async () => {
+    const result = await loginWithGoogle();
+    if (result.success) {
+      Alert.alert('Success', 'Account created with Google');
+      navigation.replace('Home');
+    } else {
+      Alert.alert('Error', result.error || 'Google signup failed');
+    }
+  };
+
+  const handleGitHubSignup = async () => {
+    const result = await loginWithGitHub();
+    if (result.success) {
+      Alert.alert('Success', 'Account created with GitHub');
+      navigation.replace('Home');
+    } else {
+      Alert.alert('Error', result.error || 'GitHub signup failed');
     }
   };
 
@@ -59,7 +85,20 @@ export default function RegisterScreen({ navigation }: any) {
           <Text style={styles.buttonText}>Sign Up</Text>
         </TouchableOpacity>
 
-        {/* Go back to login */}
+        <View style={styles.divider}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>OR</Text>
+          <View style={styles.dividerLine} />
+        </View>
+
+        <TouchableOpacity style={styles.oauthButton} onPress={handleGoogleSignup}>
+          <Text style={styles.oauthButtonText}>🔍 Continue with Google</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.oauthButton} onPress={handleGitHubSignup}>
+          <Text style={styles.oauthButtonText}>🐙 Continue with GitHub</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity
           onPress={() => navigation.navigate('Login')}
           style={styles.signupContainer}
@@ -134,5 +173,34 @@ const styles = StyleSheet.create({
   signupLink: {
     color: '#fff',
     fontWeight: 'bold',
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#333',
+  },
+  dividerText: {
+    color: '#aaa',
+    paddingHorizontal: 10,
+    fontSize: 14,
+  },
+  oauthButton: {
+    backgroundColor: '#222',
+    padding: 15,
+    borderRadius: 6,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#444',
+  },
+  oauthButtonText: {
+    color: 'white',
+    textAlign: 'center',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });

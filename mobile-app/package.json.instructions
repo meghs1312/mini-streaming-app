@@ -1,0 +1,10 @@
+# Required Dependencies for OAuth
+
+Run these commands in the mobile-app directory:
+
+npm install expo-web-browser expo-linking
+
+# Or if using yarn:
+yarn add expo-web-browser expo-linking
+
+These packages are required for OAuth authentication to work properly.

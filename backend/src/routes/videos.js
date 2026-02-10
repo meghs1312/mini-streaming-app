@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
+const authenticateToken = require('../middleware/auth');
 
-router.get('/', async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
   try {
     const [videos] = await db.query(`
       SELECT 
@@ -31,7 +32,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     
@@ -66,7 +67,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.get('/search', async (req, res) => {
+router.get('/search', authenticateToken, async (req, res) => {
   try {
     const { q, tags } = req.query;
     let query = `

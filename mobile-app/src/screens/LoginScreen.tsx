@@ -9,6 +9,8 @@ import {
   Alert,
 } from 'react-native';
 import API from '../services/api';
+import { loginWithGoogle, loginWithGitHub } from '../services/oauth';
+import { saveToken, saveUser } from '../services/storage';
 
 export default function LoginScreen({ navigation }: any) {
   const [email, setEmail] = useState('');
@@ -16,16 +18,40 @@ export default function LoginScreen({ navigation }: any) {
 
   const handleLogin = async () => {
     try {
-      await API.post('/auth/login', {
+      const response = await API.post('/auth/login', {
         email,
         password,
       });
+
+      const { token, user } = response.data;
+      await saveToken(token);
+      await saveUser(user);
 
       Alert.alert('Login Success');
       navigation.replace('Home');
 
     } catch (err: any) {
       Alert.alert('Error', 'Invalid credentials');
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    const result = await loginWithGoogle();
+    if (result.success) {
+      Alert.alert('Login Success');
+      navigation.replace('Home');
+    } else {
+      Alert.alert('Error', result.error || 'Google login failed');
+    }
+  };
+
+  const handleGitHubLogin = async () => {
+    const result = await loginWithGitHub();
+    if (result.success) {
+      Alert.alert('Login Success');
+      navigation.replace('Home');
+    } else {
+      Alert.alert('Error', result.error || 'GitHub login failed');
     }
   };
 
@@ -56,7 +82,19 @@ export default function LoginScreen({ navigation }: any) {
           <Text style={styles.buttonText}>Sign In</Text>
         </TouchableOpacity>
 
-        {/* ✅ FIXED — Touchable + spacing */}
+        <View style={styles.divider}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>OR</Text>
+          <View style={styles.dividerLine} />
+        </View>
+
+        <TouchableOpacity style={styles.oauthButton} onPress={handleGoogleLogin}>
+          <Text style={styles.oauthButtonText}>🔍 Continue with Google</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.oauthButton} onPress={handleGitHubLogin}>
+          <Text style={styles.oauthButtonText}>🐙 Continue with GitHub</Text>
+        </TouchableOpacity>
 
         <TouchableOpacity
           onPress={() => navigation.navigate('Register')}
@@ -120,5 +158,34 @@ const styles = StyleSheet.create({
   signupLink: {
     color: '#fff',
     fontWeight: 'bold',
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#333',
+  },
+  dividerText: {
+    color: '#aaa',
+    paddingHorizontal: 10,
+    fontSize: 14,
+  },
+  oauthButton: {
+    backgroundColor: '#222',
+    padding: 15,
+    borderRadius: 6,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#444',
+  },
+  oauthButtonText: {
+    color: 'white',
+    textAlign: 'center',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });

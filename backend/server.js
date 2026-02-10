@@ -3,6 +3,7 @@ const cors = require('cors');
 const db = require('./src/config/db');
 const authRoutes = require('./src/routes/auth');
 const videoRoutes = require('./src/routes/videos');
+const oauthRoutes = require('./src/routes/oauth');
 
 const app = express();
 
@@ -19,6 +20,7 @@ app.use((req, res, next) => {
 });
 
 app.use('/auth', authRoutes);
+app.use('/auth', oauthRoutes);
 app.use('/videos', videoRoutes);
 
 db.getConnection()

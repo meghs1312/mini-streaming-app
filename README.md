@@ -288,7 +288,3 @@ This project is licensed under the MIT License.
 - RESTful endpoints with proper HTTP status codes
 - Consistent error response format
 - Detailed console logging for debugging
-
----
-
-**Built with ❤️ for learning purposes**
