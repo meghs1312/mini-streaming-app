@@ -7,40 +7,47 @@ const router = express.Router();
 
 // REGISTER
 router.post('/register', async (req, res) => {
-console.log('register invoked paina');
+  try {
+    const { email, password } = req.body;
 
-  const { email, password } = req.body;
+    const hash = await bcrypt.hash(password, 10);
 
-  const hash = await bcrypt.hash(password, 10);
+    await db.query(
+      'INSERT INTO users(email, password) VALUES (?, ?)',
+      [email, hash]
+    );
 
-  await db.query(
-    'INSERT INTO users(email, password_hash) VALUES (?, ?)',
-    [email, hash]
-  );
-
-  console.log('register invoked');
-
-
-  res.json({ message: 'User created' });
+    console.log('✅ User registered:', email);
+    res.json({ message: 'User created' });
+  } catch (err) {
+    console.error('❌ Registration error:', err);
+    res.status(500).json({ msg: 'Registration failed', error: err.message });
+  }
 });
 
 
 // LOGIN
 router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
+  try {
+    const { email, password } = req.body;
 
-  const [rows] = await db.query(
-    'SELECT * FROM users WHERE email=?',
-    [email]
-  );
+    const [rows] = await db.query(
+      'SELECT * FROM users WHERE email=?',
+      [email]
+    );
 
-  if (!rows.length) return res.status(401).json({ msg: 'Invalid' });
+    if (!rows.length) return res.status(401).json({ msg: 'Invalid credentials' });
 
-  const valid = await bcrypt.compare(password, rows[0].password_hash);
+    const valid = await bcrypt.compare(password, rows[0].password);
 
-  if (!valid) return res.status(401).json({ msg: 'Invalid' });
+    if (!valid) return res.status(401).json({ msg: 'Invalid credentials' });
 
-  res.json({ message: 'Login success' });
+    console.log('✅ User logged in:', email);
+    res.json({ message: 'Login success' });
+  } catch (err) {
+    console.error('❌ Login error:', err);
+    res.status(500).json({ msg: 'Login failed', error: err.message });
+  }
 });
 
 module.exports = router;
