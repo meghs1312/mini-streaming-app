@@ -101,8 +101,8 @@ You should see:
 cd mobile-app
 npm install
 
-# Install required dependencies for JWT authentication and OAuth
-npm install @react-native-async-storage/async-storage expo-web-browser expo-linking
+# Install required dependencies for JWT authentication, OAuth, and video playback
+npm install @react-native-async-storage/async-storage expo-web-browser expo-linking expo-av
 ```
 
 **Start the development server:**
