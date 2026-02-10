@@ -22,7 +22,7 @@ interface Video {
   tags: string[];
 }
 
-export default function HomeScreen({ navigation }: any) {
+export default function HomeScreen({ navigation, route }: any) {
   const [videos, setVideos] = useState<Video[]>([]);
   const [filteredVideos, setFilteredVideos] = useState<Video[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -33,6 +33,18 @@ export default function HomeScreen({ navigation }: any) {
   useEffect(() => {
     fetchVideos();
   }, []);
+
+  useEffect(() => {
+    // Handle incoming tag from VideoDetailScreen
+    if (route.params?.selectedTag) {
+      const tag = route.params.selectedTag;
+      if (!selectedTags.includes(tag)) {
+        setSelectedTags([tag]);
+      }
+      // Clear the param to avoid re-triggering
+      navigation.setParams({ selectedTag: undefined });
+    }
+  }, [route.params?.selectedTag]);
 
   useEffect(() => {
     filterVideos();
