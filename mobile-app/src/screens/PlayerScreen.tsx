@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import * as ScreenOrientation from 'expo-screen-orientation';
+import ErrorScreen from '../components/ErrorScreen';
 
 const { width, height } = Dimensions.get('window');
 
@@ -27,6 +28,7 @@ export default function PlayerScreen({ route, navigation }: any) {
   const videoRef = useRef<Video>(null);
 
   // ⭐ NEW STATE (IMPORTANT)
+  // Start from the stream_url coming from the backend/database
   const [currentUrl, setCurrentUrl] = useState(video.stream_url);
 
   const [isPlaying, setIsPlaying] = useState(true);
@@ -40,11 +42,17 @@ export default function PlayerScreen({ route, navigation }: any) {
 
   const [availableQualities, setAvailableQualities] =
     useState<QualityOption[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   // =====================================
   // ⭐ PARSE MASTER PLAYLIST HERE
   // =====================================
   useEffect(() => {
+    console.log('PlayerScreen mounted for video:', {
+      id: video.id,
+      title: video.title,
+      streamUrl: video.stream_url,
+    });
     parseM3U8Manifest();
 
     return () => {
@@ -56,6 +64,7 @@ export default function PlayerScreen({ route, navigation }: any) {
 
   const parseM3U8Manifest = async () => {
     try {
+      console.log('Parsing HLS manifest from:', video.stream_url);
       const res = await fetch(video.stream_url);
       const text = await res.text();
 
@@ -70,16 +79,16 @@ export default function PlayerScreen({ route, navigation }: any) {
           const resolutionMatch =
             lines[i].match(/RESOLUTION=(\d+x\d+)/);
 
-          const nextLine = lines[i + 1];
+          // Next line after EXT-X-STREAM-INF should be the variant playlist path
+          const nextLineRaw = lines[i + 1];
+          const nextLine = nextLineRaw && nextLineRaw.trim();
 
-          if (resolutionMatch && nextLine) {
+          // Skip if missing or a comment/empty line
+          if (resolutionMatch && nextLine && !nextLine.startsWith('#')) {
             const resolution = resolutionMatch[1];
             const label = resolution.split('x')[1] + 'p';
 
-            const fullUrl = new URL(
-              nextLine,
-              video.stream_url
-            ).toString();
+            const fullUrl = new URL(nextLine, video.stream_url).toString();
 
             qualities.push({
               label,
@@ -91,8 +100,15 @@ export default function PlayerScreen({ route, navigation }: any) {
       }
 
       setAvailableQualities(qualities);
-    } catch (err) {
-      console.log(err);
+      console.log('Available qualities:', qualities);
+      setError(null);
+    } catch (err: any) {
+      console.log('Error parsing manifest:', err);
+      setError(
+        err.message || 
+        'Failed to load video stream. Please check your connection and try again.'
+      );
+      setIsLoading(false);
     }
   };
 
@@ -100,21 +116,55 @@ export default function PlayerScreen({ route, navigation }: any) {
   //  REAL QUALITY SWITCHING
   // =====================================
   const handleQualityChange = async (quality: QualityOption) => {
-     const newUrl = quality.url || video.stream_url;
+    const newUrl = quality.url || video.stream_url;
 
-     console.log("switching →", newUrl);   // ⭐ THIS IS THE REAL CHECK
+    console.log('switching →', newUrl);
 
-     setCurrentQuality(quality.label);
-     setShowQualityMenu(false);
-     setCurrentUrl(newUrl);
+    setCurrentQuality(quality.label);
+    setShowQualityMenu(false);
+    setCurrentUrl(newUrl);
+    setIsLoading(true);
 
-     if (videoRef.current) {
-       await videoRef.current.loadAsync(
-         { uri: newUrl },
-         { shouldPlay: true }
-       );
+    if (videoRef.current) {
+      try {
+        // Stop current playback before loading new stream
+        await videoRef.current.stopAsync();
+      } catch (e) {
+        // ignore if not playing yet
+      }
 
-       console.log("video reloaded ✅");
+      try {
+        await videoRef.current.loadAsync(
+          { uri: newUrl },
+          { shouldPlay: true }
+        );
+        console.log('video reloaded ✅');
+      } catch (e) {
+        console.log('error reloading video', e);
+        setIsLoading(false);
+      }
+    }
+  };
+
+  // =====================================
+  // FULLSCREEN TOGGLE
+  // =====================================
+  const toggleFullscreen = async () => {
+    try {
+      if (isFullscreen) {
+        await ScreenOrientation.lockAsync(
+          ScreenOrientation.OrientationLock.PORTRAIT_UP
+        );
+        console.log('Exiting fullscreen');
+      } else {
+        await ScreenOrientation.lockAsync(
+          ScreenOrientation.OrientationLock.LANDSCAPE
+        );
+        console.log('Entering fullscreen');
+      }
+      setIsFullscreen(!isFullscreen);
+    } catch (e) {
+      console.log('Error toggling fullscreen', e);
     }
   };
 
@@ -134,12 +184,28 @@ export default function PlayerScreen({ route, navigation }: any) {
   // =====================================
   // UI
   // =====================================
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <StatusBar hidden />
+        <ErrorScreen
+          message={error}
+          onRetry={() => {
+            setError(null);
+            setIsLoading(true);
+            parseM3U8Manifest();
+          }}
+        />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <StatusBar hidden />
 
       <TouchableOpacity
-        style={styles.videoContainer}
+        style={[styles.videoContainer, isFullscreen && styles.videoContainerFullscreen]}
         activeOpacity={1}
       >
         <Video
@@ -154,25 +220,22 @@ export default function PlayerScreen({ route, navigation }: any) {
         {isLoading && <ActivityIndicator size="large" color="#E50914" />}
       </TouchableOpacity>
 
-      {/* SIMPLE QUALITY BUTTON */}
-      {availableQualities.length > 0 && (
-        <View style={styles.controls}>
-          <TouchableOpacity
-            style={styles.qualityButton}
-            onPress={() => setShowQualityMenu(true)}
-          >
-            <Text style={styles.qualityButtonText}>
-              Quality: {currentQuality}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      {/* SETTINGS BUTTON OVERLAY */}
+      <View style={styles.settingsOverlay}>
+        <TouchableOpacity
+          style={styles.settingsButton}
+          onPress={() => setShowQualityMenu(true)}
+        >
+          <Text style={styles.settingsIcon}>⚙</Text>
+        </TouchableOpacity>
+      </View>
 
-      {/* QUALITY MENU */}
+      {/* QUALITY / SETTINGS MENU */}
       <Modal visible={showQualityMenu} transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Select Quality</Text>
+            <Text style={styles.modalTitle}>Player Settings</Text>
+            <Text style={styles.sectionTitle}>Video Quality</Text>
             <ScrollView>
               {availableQualities.map((q, i) => (
                 <TouchableOpacity
@@ -196,6 +259,16 @@ export default function PlayerScreen({ route, navigation }: any) {
               ))}
             </ScrollView>
 
+            <Text style={styles.sectionTitle}>Screen</Text>
+            <TouchableOpacity
+              style={styles.fullscreenButton}
+              onPress={toggleFullscreen}
+            >
+              <Text style={styles.fullscreenButtonText}>
+                {isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+              </Text>
+            </TouchableOpacity>
+
             <TouchableOpacity
               style={styles.closeButton}
               onPress={() => setShowQualityMenu(false)}
@@ -216,26 +289,28 @@ const styles = StyleSheet.create({
     height: (width * 9) / 16,
     backgroundColor: '#000',
   },
+  videoContainerFullscreen: {
+    width: height,
+    height: width,
+  },
   video: {
     width: '100%',
     height: '100%',
   },
-  controls: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    alignItems: 'flex-end',
+  settingsOverlay: {
+    position: 'absolute',
+    top: 30,
+    right: 16,
   },
-  qualityButton: {
-    backgroundColor: '#222',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#444',
+  settingsButton: {
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
   },
-  qualityButtonText: {
+  settingsIcon: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 18,
   },
   modalOverlay: {
     flex: 1,
@@ -255,6 +330,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 12,
+  },
+  sectionTitle: {
+    color: '#ccc',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginTop: 8,
+    marginBottom: 4,
   },
   qualityOption: {
     paddingVertical: 10,
@@ -284,5 +366,19 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  fullscreenButton: {
+    marginTop: 12,
+    marginBottom: 8,
+    backgroundColor: '#222',
+    paddingVertical: 10,
+    borderRadius: 6,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#444',
+  },
+  fullscreenButtonText: {
+    color: '#fff',
+    fontSize: 16,
   },
 });

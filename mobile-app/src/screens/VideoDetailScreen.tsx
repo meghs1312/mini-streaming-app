@@ -2,76 +2,36 @@ import React from 'react';
 import {
   View,
   Text,
-  ScrollView,
   TouchableOpacity,
   StyleSheet,
-  StatusBar,
-  Dimensions,
+  Image,
+  ScrollView,
 } from 'react-native';
 
-const { width } = Dimensions.get('window');
+const THUMBNAIL =
+  'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=800&h=450&fit=crop';
 
 export default function VideoDetailScreen({ route, navigation }: any) {
   const { video } = route.params;
 
-  const handleTagPress = (tag: string) => {
-    navigation.navigate('Home', { selectedTag: tag });
-  };
-
-  const handlePlayVideo = () => {
-    navigation.navigate('Player', { video });
-  };
-
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
-      
-      <ScrollView>
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.backButtonText}>← Back</Text>
-          </TouchableOpacity>
-        </View>
+    <ScrollView style={styles.container}>
+      {/* ⭐ SAME IMAGE HERE */}
+      <Image source={{ uri: THUMBNAIL }} style={styles.thumbnail} />
 
-        <View style={styles.thumbnailContainer}>
-          <View style={styles.thumbnail}>
-            <TouchableOpacity style={styles.playButton} onPress={handlePlayVideo}>
-              <Text style={styles.playIcon}>▶</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+      <Text style={styles.title}>{video.title}</Text>
 
-        <View style={styles.content}>
-          <Text style={styles.title}>{video.title}</Text>
-          
-          <Text style={styles.description}>{video.description}</Text>
+      <Text style={styles.desc}>{video.description}</Text>
 
-          {video.tags && video.tags.length > 0 && (
-            <View style={styles.tagsSection}>
-              <Text style={styles.tagsLabel}>Tags:</Text>
-              <View style={styles.tagsContainer}>
-                {video.tags.map((tag: string, index: number) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={styles.tagChip}
-                    onPress={() => handleTagPress(tag)}
-                  >
-                    <Text style={styles.tagText}>{tag}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          )}
-
-          <TouchableOpacity style={styles.watchButton} onPress={handlePlayVideo}>
-            <Text style={styles.watchButtonText}>▶ Watch Now</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </View>
+      <TouchableOpacity
+        style={styles.playButton}
+        onPress={() =>
+          navigation.navigate('Player', { video })
+        }
+      >
+        <Text style={styles.playText}>▶ Play Video</Text>
+      </TouchableOpacity>
+    </ScrollView>
   );
 }
 
@@ -79,94 +39,39 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000',
+    padding: 15,
   },
-  header: {
-    paddingTop: 50,
-    paddingHorizontal: 20,
-    paddingBottom: 10,
-  },
-  backButton: {
-    alignSelf: 'flex-start',
-  },
-  backButtonText: {
-    color: 'white',
-    fontSize: 16,
-  },
-  thumbnailContainer: {
-    width: '100%',
-    height: 220,
-    backgroundColor: '#222',
-  },
+
   thumbnail: {
     width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  playButton: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: '#E50914',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  playIcon: {
-    color: 'white',
-    fontSize: 30,
-    marginLeft: 5,
-  },
-  content: {
-    padding: 20,
-  },
-  title: {
-    color: 'white',
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 15,
-  },
-  description: {
-    color: '#aaa',
-    fontSize: 16,
-    lineHeight: 24,
+    height: 240,
+    borderRadius: 12,
     marginBottom: 20,
   },
-  tagsSection: {
+
+  title: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+
+  desc: {
+    color: '#aaa',
+    fontSize: 14,
     marginBottom: 25,
   },
-  tagsLabel: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  tagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  tagChip: {
-    backgroundColor: '#333',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginRight: 10,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#555',
-  },
-  tagText: {
-    color: 'white',
-    fontSize: 14,
-  },
-  watchButton: {
+
+  playButton: {
     backgroundColor: '#E50914',
-    padding: 16,
-    borderRadius: 8,
+    padding: 15,
+    borderRadius: 10,
     alignItems: 'center',
   },
-  watchButtonText: {
-    color: 'white',
-    fontSize: 18,
+
+  playText: {
+    color: '#fff',
     fontWeight: 'bold',
+    fontSize: 16,
   },
 });

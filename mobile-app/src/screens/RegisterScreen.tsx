@@ -12,13 +12,18 @@ import {
 import API from '../services/api';
 import { loginWithGoogle, loginWithGitHub } from '../services/oauth';
 import { saveToken, saveUser } from '../services/storage';
+import ErrorScreen from '../components/ErrorScreen';
 
 export default function RegisterScreen({ navigation }: any) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleRegister = async () => {
     try {
+      setError(null);
+      setIsLoading(true);
       const response = await API.post('/auth/register', {
         email,
         password,
@@ -32,7 +37,17 @@ export default function RegisterScreen({ navigation }: any) {
       navigation.replace('Home');
 
     } catch (err: any) {
-      Alert.alert('Error', err.response?.data?.msg || 'Registration failed');
+      setIsLoading(false);
+      const errorMessage = err.response?.data?.msg || 
+                          err.message || 
+                          'Network error. Please check your connection and try again.';
+      
+      // Show error screen for network/API errors
+      if (err.response?.status === 500 || !err.response) {
+        setError(errorMessage);
+      } else {
+        Alert.alert('Error', errorMessage);
+      }
     }
   };
 
@@ -56,6 +71,21 @@ export default function RegisterScreen({ navigation }: any) {
     }
   };
 
+
+  if (error) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#000' }}>
+        <StatusBar barStyle="light-content" />
+        <ErrorScreen
+          message={error}
+          onRetry={() => {
+            setError(null);
+            handleRegister();
+          }}
+        />
+      </View>
+    );
+  }
 
   return (
     <ScrollView contentContainerStyle={styles.container}>

@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import API from '../services/api';
 import { clearAll } from '../services/storage';
+import ErrorScreen from '../components/ErrorScreen';
 
 interface Video {
   id: number;
@@ -29,6 +30,7 @@ export default function HomeScreen({ navigation, route }: any) {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [allTags, setAllTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchVideos();
@@ -52,18 +54,25 @@ export default function HomeScreen({ navigation, route }: any) {
 
   const fetchVideos = async () => {
     try {
+      setError(null);
+      setLoading(true);
       const response = await API.get('/videos');
       setVideos(response.data);
       setFilteredVideos(response.data);
-      
+
       const tags = new Set<string>();
       response.data.forEach((video: Video) => {
         video.tags?.forEach((tag: string) => tags.add(tag));
       });
       setAllTags(Array.from(tags));
       setLoading(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching videos:', error);
+      setError(
+        error.response?.data?.error ||
+        error.message ||
+        'Failed to load videos. Please check your connection and try again.'
+      );
       setLoading(false);
     }
   };
@@ -82,7 +91,7 @@ export default function HomeScreen({ navigation, route }: any) {
 
     if (selectedTags.length > 0) {
       filtered = filtered.filter(video =>
-        selectedTags.every(tag => video.tags?.includes(tag))
+        selectedTags.some(tag => video.tags?.includes(tag))
       );
     }
 
@@ -144,10 +153,27 @@ export default function HomeScreen({ navigation, route }: any) {
     );
   }
 
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.logo}>NETFLIX</Text>
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Text style={styles.logoutText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
+        <ErrorScreen
+          message={error}
+          onRetry={fetchVideos}
+        />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      
+
       <View style={styles.header}>
         <Text style={styles.logo}>NETFLIX</Text>
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>

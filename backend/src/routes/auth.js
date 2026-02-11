@@ -1,9 +1,14 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const db = require('../config/db');
-const { generateToken } = require('../utils/jwt');
 
 const router = express.Router();
+
+// Helper to create a random session token (NOT a JWT)
+const generateSessionToken = () => {
+  return crypto.randomBytes(32).toString('hex');
+};
 
 
 // REGISTER
@@ -13,18 +18,20 @@ router.post('/register', async (req, res) => {
 
     const hash = await bcrypt.hash(password, 10);
 
+    const sessionToken = generateSessionToken();
+
     const [result] = await db.query(
-      'INSERT INTO users(email, password) VALUES (?, ?)',
-      [email, hash]
+      'INSERT INTO users(email, password, session_token) VALUES (?, ?, ?)',
+      [email, hash, sessionToken]
     );
 
     const userId = result.insertId;
-    const token = generateToken(userId, email);
 
     console.log('✅ User registered:', email);
     res.json({ 
       message: 'User created',
-      token,
+      // Return our custom session token (not a JWT)
+      token: sessionToken,
       user: { id: userId, email }
     });
   } catch (err) {
@@ -51,12 +58,18 @@ router.post('/login', async (req, res) => {
     if (!valid) return res.status(401).json({ msg: 'Invalid credentials' });
 
     const user = rows[0];
-    const token = generateToken(user.id, user.email);
+
+    // Generate a new session token on each successful login
+    const sessionToken = generateSessionToken();
+    await db.query(
+      'UPDATE users SET session_token = ? WHERE id = ?',
+      [sessionToken, user.id]
+    );
 
     console.log('✅ User logged in:', email);
     res.json({ 
       message: 'Login success',
-      token,
+      token: sessionToken,
       user: { id: user.id, email: user.email }
     });
   } catch (err) {

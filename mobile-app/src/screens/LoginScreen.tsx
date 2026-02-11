@@ -11,13 +11,18 @@ import {
 import API from '../services/api';
 import { loginWithGoogle, loginWithGitHub } from '../services/oauth';
 import { saveToken, saveUser } from '../services/storage';
+import ErrorScreen from '../components/ErrorScreen';
 
 export default function LoginScreen({ navigation }: any) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async () => {
     try {
+      setError(null);
+      setIsLoading(true);
       const response = await API.post('/auth/login', {
         email,
         password,
@@ -31,7 +36,17 @@ export default function LoginScreen({ navigation }: any) {
       navigation.replace('Home');
 
     } catch (err: any) {
-      Alert.alert('Error', 'Invalid credentials');
+      setIsLoading(false);
+      const errorMessage = err.response?.data?.msg || 
+                          err.message || 
+                          'Network error. Please check your connection and try again.';
+      
+      // Show error screen for network/API errors, Alert for invalid credentials
+      if (err.response?.status === 401) {
+        Alert.alert('Error', 'Invalid credentials');
+      } else {
+        setError(errorMessage);
+      }
     }
   };
 
@@ -55,6 +70,21 @@ export default function LoginScreen({ navigation }: any) {
     }
   };
 
+
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <StatusBar barStyle="light-content" />
+        <ErrorScreen
+          message={error}
+          onRetry={() => {
+            setError(null);
+            handleLogin();
+          }}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
