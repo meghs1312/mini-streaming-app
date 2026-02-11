@@ -32,10 +32,10 @@ CREATE TABLE IF NOT EXISTS video_tags (
 );
 
 INSERT INTO videos (title, description, thumbnail_url, stream_url) VALUES
-('Skate Phantom Flex 4K', 'Amazing skateboarding footage captured in stunning 4K quality with Phantom Flex camera', 'https://via.placeholder.com/300x170/E50914/FFFFFF?text=Skate+4K', 'http://sample.vodobox.net/skate_phantom_flex_4k/skate_phantom_flex_4k.m3u8'),
-('Fitness Workout Session', 'High-intensity workout session to keep you fit and healthy', 'https://via.placeholder.com/300x170/E50914/FFFFFF?text=Fitness', 'https://flipfit-cdn.akamaized.net/flip_hls/662aae7a42cd740019b91dec-3e114f/video_h1.m3u8'),
-('Demo Video Stream', 'Test stream for adaptive bitrate playback demonstration', 'https://via.placeholder.com/300x170/E50914/FFFFFF?text=Demo+Stream', 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'),
-('Advanced Training Program', 'Professional training program for advanced fitness enthusiasts', 'https://via.placeholder.com/300x170/E50914/FFFFFF?text=Training', 'https://flipfit-cdn.akamaized.net/flip_hls/664d87dfe8e47500199ee49e-dbd56b/video_h1.m3u8');
+('Skate Phantom Flex 4K', 'Amazing skateboarding footage captured in stunning 4K quality with Phantom Flex camera', 'https://via.placeholder.com/300x170/E50914/FFFFFF?text=VIDEO', 'http://sample.vodobox.net/skate_phantom_flex_4k/skate_phantom_flex_4k.m3u8'),
+('Fitness Workout Session', 'High-intensity workout session to keep you fit and healthy', 'https://via.placeholder.com/300x170/E50914/FFFFFF?text=VIDEO', 'https://flipfit-cdn.akamaized.net/flip_hls/662aae7a42cd740019b91dec-3e114f/video_h1.m3u8'),
+('Demo Video Stream', 'Test stream for adaptive bitrate playback demonstration', 'https://via.placeholder.com/300x170/E50914/FFFFFF?text=VIDEO', 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'),
+('Advanced Training Program', 'Professional training program for advanced fitness enthusiasts', 'https://via.placeholder.com/300x170/E50914/FFFFFF?text=VIDEO', 'https://flipfit-cdn.akamaized.net/flip_hls/664d87dfe8e47500199ee49e-dbd56b/video_h1.m3u8');
 
 INSERT INTO tags (name) VALUES
 ('Sports'),
