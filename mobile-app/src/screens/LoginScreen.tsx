@@ -17,6 +17,11 @@ export default function LoginScreen({ navigation }: any) {
   const [password, setPassword] = useState('');
 
   const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please enter both email and password');
+      return;
+    }
+
     try {
       const response = await API.post('/auth/login', {
         email,
@@ -31,27 +36,40 @@ export default function LoginScreen({ navigation }: any) {
       navigation.replace('Home');
 
     } catch (err: any) {
-      Alert.alert('Error', 'Invalid credentials');
+      const errorMessage = err.response?.data?.message || 
+        err.response?.status === 401 ? 'Invalid email or password' :
+        err.response?.status === 500 ? 'Server error. Please try again later' :
+        err.message === 'Network Error' ? 'Network error. Please check your connection' :
+        'Login failed. Please try again';
+      Alert.alert('Login Failed', errorMessage);
     }
   };
 
   const handleGoogleLogin = async () => {
-    const result = await loginWithGoogle();
-    if (result.success) {
-      Alert.alert('Login Success');
-      navigation.replace('Home');
-    } else {
-      Alert.alert('Error', result.error || 'Google login failed');
+    try {
+      const result = await loginWithGoogle();
+      if (result.success) {
+        Alert.alert('Login Success');
+        navigation.replace('Home');
+      } else {
+        Alert.alert('Google Login Failed', result.error || 'Unable to complete Google login. Please try again.');
+      }
+    } catch (error) {
+      Alert.alert('Google Login Failed', 'An unexpected error occurred. Please try again.');
     }
   };
 
   const handleGitHubLogin = async () => {
-    const result = await loginWithGitHub();
-    if (result.success) {
-      Alert.alert('Login Success');
-      navigation.replace('Home');
-    } else {
-      Alert.alert('Error', result.error || 'GitHub login failed');
+    try {
+      const result = await loginWithGitHub();
+      if (result.success) {
+        Alert.alert('Login Success');
+        navigation.replace('Home');
+      } else {
+        Alert.alert('GitHub Login Failed', result.error || 'Unable to complete GitHub login. Please try again.');
+      }
+    } catch (error) {
+      Alert.alert('GitHub Login Failed', 'An unexpected error occurred. Please try again.');
     }
   };
 

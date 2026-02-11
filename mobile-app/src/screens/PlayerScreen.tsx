@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import * as ScreenOrientation from 'expo-screen-orientation';
+import ErrorScreen from '../components/ErrorScreen';
 
 const { width, height } = Dimensions.get('window');
 
@@ -22,7 +23,7 @@ interface QualityOption {
 }
 
 export default function PlayerScreen({ route, navigation }: any) {
-  const { video } = route.params;
+  const { video } = route.params || {};
   const videoRef = useRef<Video>(null);
   
   const [isPlaying, setIsPlaying] = useState(true);
@@ -33,6 +34,7 @@ export default function PlayerScreen({ route, navigation }: any) {
   const [duration, setDuration] = useState(0);
   const [position, setPosition] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [videoError, setVideoError] = useState<string | null>(null);
   const [availableQualities, setAvailableQualities] = useState<QualityOption[]>([
     { label: 'Auto', resolution: 'Adaptive' },
     { label: '1080p', resolution: '1920x1080' },
@@ -56,9 +58,12 @@ export default function PlayerScreen({ route, navigation }: any) {
       // In a real implementation, you would fetch and parse the .m3u8 file
       // For now, we'll use default quality options
       // The expo-av Video component handles adaptive streaming automatically
-      console.log('HLS stream URL:', video.stream_url);
+      if (video?.stream_url) {
+        console.log('HLS stream URL:', video.stream_url);
+      }
     } catch (error) {
       console.error('Error parsing manifest:', error);
+      setVideoError('Failed to load video manifest');
     }
   };
 
@@ -97,6 +102,9 @@ export default function PlayerScreen({ route, navigation }: any) {
       setDuration(status.durationMillis || 0);
       setPosition(status.positionMillis || 0);
       setIsPlaying(status.isPlaying);
+    } else if (status.error) {
+      setIsLoading(false);
+      setVideoError(`Video playback error: ${status.error}`);
     }
   };
 
@@ -107,19 +115,48 @@ export default function PlayerScreen({ route, navigation }: any) {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
+  const handleRetry = async () => {
+    setVideoError(null);
+    setIsLoading(true);
+    await parseM3U8Manifest();
+  };
+
+  if (!video || !video.stream_url) {
+    return (
+      <ErrorScreen 
+        message="Video not available. The video stream URL is missing or invalid."
+        onRetry={() => navigation.goBack()}
+        showRetry={false}
+      />
+    );
+  }
+
+  if (videoError) {
+    return (
+      <ErrorScreen 
+        message={videoError}
+        onRetry={handleRetry}
+      />
+    );
+  }
+
   const toggleControls = () => {
     setShowControls(!showControls);
   };
 
   const toggleFullscreen = async () => {
-    if (isFullscreen) {
-      // Exit fullscreen - return to portrait
-      await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
-      setIsFullscreen(false);
-    } else {
-      // Enter fullscreen - switch to landscape
-      await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
-      setIsFullscreen(true);
+    try {
+      if (isFullscreen) {
+        // Exit fullscreen - return to portrait
+        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+        setIsFullscreen(false);
+      } else {
+        // Enter fullscreen - switch to landscape
+        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+        setIsFullscreen(true);
+      }
+    } catch (error) {
+      console.error('Error toggling fullscreen:', error);
     }
   };
 

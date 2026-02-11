@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import API from '../services/api';
 import { clearAll } from '../services/storage';
+import ErrorScreen from '../components/ErrorScreen';
 
 interface Video {
   id: number;
@@ -29,6 +30,9 @@ export default function HomeScreen({ navigation, route }: any) {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [allTags, setAllTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showAllCategories, setShowAllCategories] = useState(false);
+  const [filterMode, setFilterMode] = useState<'AND' | 'OR'>('AND');
 
   useEffect(() => {
     fetchVideos();
@@ -52,6 +56,8 @@ export default function HomeScreen({ navigation, route }: any) {
 
   const fetchVideos = async () => {
     try {
+      setLoading(true);
+      setError(null);
       const response = await API.get('/videos');
       setVideos(response.data);
       setFilteredVideos(response.data);
@@ -62,8 +68,9 @@ export default function HomeScreen({ navigation, route }: any) {
       });
       setAllTags(Array.from(tags));
       setLoading(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching videos:', error);
+      setError(error.response?.data?.message || 'Failed to load videos. Please check your connection and try again.');
       setLoading(false);
     }
   };
@@ -81,9 +88,15 @@ export default function HomeScreen({ navigation, route }: any) {
     }
 
     if (selectedTags.length > 0) {
-      filtered = filtered.filter(video =>
-        selectedTags.every(tag => video.tags?.includes(tag))
-      );
+      filtered = filtered.filter(video => {
+        if (filterMode === 'AND') {
+          // AND: Video must have ALL selected tags
+          return selectedTags.every(tag => video.tags?.includes(tag));
+        } else {
+          // OR: Video must have AT LEAST ONE selected tag
+          return selectedTags.some(tag => video.tags?.includes(tag));
+        }
+      });
     }
 
     setFilteredVideos(filtered);
@@ -100,6 +113,10 @@ export default function HomeScreen({ navigation, route }: any) {
   const clearFilters = () => {
     setSearchQuery('');
     setSelectedTags([]);
+  };
+
+  const toggleFilterMode = () => {
+    setFilterMode(filterMode === 'AND' ? 'OR' : 'AND');
   };
 
   const handleLogout = async () => {
@@ -144,6 +161,10 @@ export default function HomeScreen({ navigation, route }: any) {
     );
   }
 
+  if (error) {
+    return <ErrorScreen message={error} onRetry={fetchVideos} />;
+  }
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
@@ -166,35 +187,74 @@ export default function HomeScreen({ navigation, route }: any) {
       </View>
 
       {allTags.length > 0 && (
-        <View style={styles.filterSection}>
-          <FlatList
-            horizontal
-            data={allTags}
-            keyExtractor={(item) => item}
-            showsHorizontalScrollIndicator={false}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={[
-                  styles.filterChip,
-                  selectedTags.includes(item) && styles.filterChipActive,
-                ]}
-                onPress={() => toggleTag(item)}
-              >
-                <Text
-                  style={[
-                    styles.filterChipText,
-                    selectedTags.includes(item) && styles.filterChipTextActive,
-                  ]}
+        <View>
+          <View style={styles.filterHeader}>
+            <View style={styles.filterHeaderLeft}>
+              <Text style={styles.filterTitle}>Categories</Text>
+              {selectedTags.length > 0 && (
+                <View style={styles.selectedCountBadge}>
+                  <Text style={styles.selectedCountText}>{selectedTags.length}</Text>
+                </View>
+              )}
+            </View>
+            <View style={styles.filterHeaderRight}>
+              {selectedTags.length > 1 && (
+                <TouchableOpacity 
+                  style={styles.filterModeButton} 
+                  onPress={toggleFilterMode}
                 >
-                  {item}
+                  <Text style={styles.filterModeText}>{filterMode}</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity 
+                style={styles.expandButton} 
+                onPress={() => setShowAllCategories(!showAllCategories)}
+              >
+                <Text style={styles.expandButtonText}>
+                  {showAllCategories ? '▼ Less' : '▶ All'}
                 </Text>
               </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.filterSection}>
+            <FlatList
+              horizontal
+              data={showAllCategories ? allTags : allTags.slice(0, 5)}
+              keyExtractor={(item) => item}
+              showsHorizontalScrollIndicator={false}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.filterChip,
+                    selectedTags.includes(item) && styles.filterChipActive,
+                  ]}
+                  onPress={() => toggleTag(item)}
+                >
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      selectedTags.includes(item) && styles.filterChipTextActive,
+                    ]}
+                  >
+                    {item}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            />
+            {(searchQuery || selectedTags.length > 0) && (
+              <TouchableOpacity style={styles.clearButton} onPress={clearFilters}>
+                <Text style={styles.clearButtonText}>✕</Text>
+              </TouchableOpacity>
             )}
-          />
-          {(searchQuery || selectedTags.length > 0) && (
-            <TouchableOpacity style={styles.clearButton} onPress={clearFilters}>
-              <Text style={styles.clearButtonText}>Clear</Text>
-            </TouchableOpacity>
+          </View>
+
+          {selectedTags.length > 0 && (
+            <View style={styles.selectedTagsInfo}>
+              <Text style={styles.selectedTagsText}>
+                Showing videos with {filterMode === 'AND' ? 'ALL' : 'ANY'} of: {selectedTags.join(', ')}
+              </Text>
+            </View>
           )}
         </View>
       )}
@@ -261,6 +321,65 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     fontSize: 16,
   },
+  filterHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 5,
+  },
+  filterHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  filterHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  filterTitle: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginRight: 8,
+  },
+  selectedCountBadge: {
+    backgroundColor: '#E50914',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    minWidth: 24,
+    alignItems: 'center',
+  },
+  selectedCountText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  filterModeButton: {
+    backgroundColor: '#333',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E50914',
+  },
+  filterModeText: {
+    color: '#E50914',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  expandButton: {
+    backgroundColor: '#333',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  expandButtonText: {
+    color: '#aaa',
+    fontSize: 12,
+  },
   filterSection: {
     paddingVertical: 10,
     paddingLeft: 20,
@@ -289,7 +408,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   clearButton: {
-    backgroundColor: '#333',
+    backgroundColor: '#E50914',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
@@ -297,7 +416,23 @@ const styles = StyleSheet.create({
   },
   clearButtonText: {
     color: 'white',
-    fontSize: 14,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  selectedTagsInfo: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    backgroundColor: '#111',
+    marginHorizontal: 20,
+    marginTop: 5,
+    borderRadius: 6,
+    borderLeftWidth: 3,
+    borderLeftColor: '#E50914',
+  },
+  selectedTagsText: {
+    color: '#aaa',
+    fontSize: 12,
+    fontStyle: 'italic',
   },
   videoList: {
     paddingHorizontal: 20,

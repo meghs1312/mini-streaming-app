@@ -5,10 +5,13 @@ A Netflix-like video streaming platform built with React Native (mobile) and Nod
 ## 🎯 Features
 
 - **User Authentication**: Email/password registration and login with bcrypt encryption
+- **OAuth Integration**: Google and GitHub OAuth login support
 - **Video Discovery**: Browse video library with thumbnails and metadata
-- **Search & Filter**: Real-time search by title and multi-tag filtering
+- **Search & Filter**: Real-time search by title/description with advanced multi-select category filtering (AND/OR operations)
 - **Video Details**: Detailed view with clickable tags for contextual navigation
-- **Adaptive Streaming**: HLS (.m3u8) video playback support
+- **Adaptive Streaming**: HLS (.m3u8) video playback with manual quality selection
+- **Fullscreen Mode**: Landscape orientation support for immersive viewing
+- **Error Handling**: Comprehensive error screens with retry functionality
 - **Responsive UI**: Netflix-inspired dark theme interface
 
 ## 🏗️ Tech Stack

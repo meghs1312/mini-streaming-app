@@ -8,11 +8,12 @@ import {
   StatusBar,
   Dimensions,
 } from 'react-native';
+import ErrorScreen from '../components/ErrorScreen';
 
 const { width } = Dimensions.get('window');
 
 export default function VideoDetailScreen({ route, navigation }: any) {
-  const { video } = route.params;
+  const { video } = route.params || {};
 
   const handleTagPress = (tag: string) => {
     navigation.navigate('Home', { selectedTag: tag });
@@ -21,6 +22,16 @@ export default function VideoDetailScreen({ route, navigation }: any) {
   const handlePlayVideo = () => {
     navigation.navigate('Player', { video });
   };
+
+  if (!video) {
+    return (
+      <ErrorScreen 
+        message="Video not found. The video you're looking for doesn't exist or has been removed."
+        onRetry={() => navigation.goBack()}
+        showRetry={false}
+      />
+    );
+  }
 
   return (
     <View style={styles.container}>

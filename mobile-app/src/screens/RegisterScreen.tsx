@@ -18,6 +18,16 @@ export default function RegisterScreen({ navigation }: any) {
   const [password, setPassword] = useState('');
 
   const handleRegister = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please enter both email and password');
+      return;
+    }
+
+    if (password.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters long');
+      return;
+    }
+
     try {
       const response = await API.post('/auth/register', {
         email,
@@ -32,27 +42,41 @@ export default function RegisterScreen({ navigation }: any) {
       navigation.replace('Home');
 
     } catch (err: any) {
-      Alert.alert('Error', err.response?.data?.msg || 'Registration failed');
+      const errorMessage = err.response?.data?.msg || 
+        err.response?.data?.message ||
+        err.response?.status === 400 ? 'Email already exists or invalid data' :
+        err.response?.status === 500 ? 'Server error. Please try again later' :
+        err.message === 'Network Error' ? 'Network error. Please check your connection' :
+        'Registration failed. Please try again';
+      Alert.alert('Registration Failed', errorMessage);
     }
   };
 
   const handleGoogleSignup = async () => {
-    const result = await loginWithGoogle();
-    if (result.success) {
-      Alert.alert('Success', 'Account created with Google');
-      navigation.replace('Home');
-    } else {
-      Alert.alert('Error', result.error || 'Google signup failed');
+    try {
+      const result = await loginWithGoogle();
+      if (result.success) {
+        Alert.alert('Success', 'Account created with Google');
+        navigation.replace('Home');
+      } else {
+        Alert.alert('Google Signup Failed', result.error || 'Unable to complete Google signup. Please try again.');
+      }
+    } catch (error) {
+      Alert.alert('Google Signup Failed', 'An unexpected error occurred. Please try again.');
     }
   };
 
   const handleGitHubSignup = async () => {
-    const result = await loginWithGitHub();
-    if (result.success) {
-      Alert.alert('Success', 'Account created with GitHub');
-      navigation.replace('Home');
-    } else {
-      Alert.alert('Error', result.error || 'GitHub signup failed');
+    try {
+      const result = await loginWithGitHub();
+      if (result.success) {
+        Alert.alert('Success', 'Account created with GitHub');
+        navigation.replace('Home');
+      } else {
+        Alert.alert('GitHub Signup Failed', result.error || 'Unable to complete GitHub signup. Please try again.');
+      }
+    } catch (error) {
+      Alert.alert('GitHub Signup Failed', 'An unexpected error occurred. Please try again.');
     }
   };
 
