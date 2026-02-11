@@ -97,7 +97,7 @@ export default function PlayerScreen({ route, navigation }: any) {
   };
 
   // =====================================
-  // ⭐ REAL QUALITY SWITCHING
+  //  REAL QUALITY SWITCHING
   // =====================================
   const handleQualityChange = async (quality: QualityOption) => {
      const newUrl = quality.url || video.stream_url;
@@ -142,7 +142,6 @@ export default function PlayerScreen({ route, navigation }: any) {
         style={styles.videoContainer}
         activeOpacity={1}
       >
-        {/* ⭐ CHANGED HERE */}
         <Video
           ref={videoRef}
           source={{ uri: currentUrl }}
@@ -155,18 +154,56 @@ export default function PlayerScreen({ route, navigation }: any) {
         {isLoading && <ActivityIndicator size="large" color="#E50914" />}
       </TouchableOpacity>
 
+      {/* SIMPLE QUALITY BUTTON */}
+      {availableQualities.length > 0 && (
+        <View style={styles.controls}>
+          <TouchableOpacity
+            style={styles.qualityButton}
+            onPress={() => setShowQualityMenu(true)}
+          >
+            <Text style={styles.qualityButtonText}>
+              Quality: {currentQuality}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* QUALITY MENU */}
       <Modal visible={showQualityMenu} transparent>
-        <ScrollView>
-          {availableQualities.map((q, i) => (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Select Quality</Text>
+            <ScrollView>
+              {availableQualities.map((q, i) => (
+                <TouchableOpacity
+                  key={i}
+                  style={[
+                    styles.qualityOption,
+                    q.label === currentQuality && styles.qualityOptionActive,
+                  ]}
+                  onPress={() => handleQualityChange(q)}
+                >
+                  <Text
+                    style={[
+                      styles.qualityOptionText,
+                      q.label === currentQuality &&
+                        styles.qualityOptionTextActive,
+                    ]}
+                  >
+                    {q.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
             <TouchableOpacity
-              key={i}
-              onPress={() => handleQualityChange(q)}
+              style={styles.closeButton}
+              onPress={() => setShowQualityMenu(false)}
             >
-              <Text>{q.label}</Text>
+              <Text style={styles.closeButtonText}>Close</Text>
             </TouchableOpacity>
-          ))}
-        </ScrollView>
+          </View>
+        </View>
       </Modal>
     </View>
   );
@@ -176,10 +213,76 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   videoContainer: {
     width: width,
-    height: width * 9 / 16,
+    height: (width * 9) / 16,
+    backgroundColor: '#000',
   },
   video: {
     width: '100%',
     height: '100%',
+  },
+  controls: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    alignItems: 'flex-end',
+  },
+  qualityButton: {
+    backgroundColor: '#222',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#444',
+  },
+  qualityButtonText: {
+    color: '#fff',
+    fontSize: 14,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '80%',
+    maxHeight: '60%',
+    backgroundColor: '#111',
+    borderRadius: 8,
+    padding: 16,
+  },
+  modalTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  qualityOption: {
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
+  },
+  qualityOptionActive: {
+    backgroundColor: '#222',
+  },
+  qualityOptionText: {
+    color: '#ccc',
+    fontSize: 16,
+  },
+  qualityOptionTextActive: {
+    color: '#E50914',
+    fontWeight: 'bold',
+  },
+  closeButton: {
+    marginTop: 12,
+    backgroundColor: '#E50914',
+    paddingVertical: 10,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
