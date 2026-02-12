@@ -68,12 +68,20 @@ export default function HomeScreen({ navigation, route }: any) {
       setLoading(false);
     } catch (error: any) {
       console.error('Error fetching videos:', error);
+      setLoading(false);
+
+      // 401/403 = token missing or invalid → go back to Login
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        await clearAll();
+        navigation.replace('Login');
+        return;
+      }
+
       setError(
         error.response?.data?.error ||
         error.message ||
         'Failed to load videos. Please check your connection and try again.'
       );
-      setLoading(false);
     }
   };
 

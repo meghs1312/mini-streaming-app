@@ -5,19 +5,31 @@ const db = require('../config/db');
 
 const router = express.Router();
 
-// Helper to create a random session token (NOT a JWT)
+// =============================
+// Helper: Generate random token
+// =============================
 const generateSessionToken = () => {
   return crypto.randomBytes(32).toString('hex');
 };
 
-
+// =============================
 // REGISTER
+// =============================
 router.post('/register', async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const hash = await bcrypt.hash(password, 10);
+    // Check if user already exists
+    const [existing] = await db.query(
+      'SELECT id FROM users WHERE email=?',
+      [email]
+    );
 
+    if (existing.length > 0) {
+      return res.status(400).json({ msg: 'User already exists' });
+    }
+
+    const hash = await bcrypt.hash(password, 10);
     const sessionToken = generateSessionToken();
 
     const [result] = await db.query(
@@ -25,23 +37,21 @@ router.post('/register', async (req, res) => {
       [email, hash, sessionToken]
     );
 
-    const userId = result.insertId;
-
-    console.log('✅ User registered:', email);
-    res.json({ 
+    res.json({
       message: 'User created',
-      // Return our custom session token (not a JWT)
       token: sessionToken,
-      user: { id: userId, email }
+      user: { id: result.insertId, email }
     });
+
   } catch (err) {
     console.error('❌ Registration error:', err);
-    res.status(500).json({ msg: 'Registration failed', error: err.message });
+    res.status(500).json({ msg: 'Registration failed' });
   }
 });
 
-
+// =============================
 // LOGIN
+// =============================
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -51,30 +61,54 @@ router.post('/login', async (req, res) => {
       [email]
     );
 
-    if (!rows.length) return res.status(401).json({ msg: 'Invalid credentials' });
-
-    const valid = await bcrypt.compare(password, rows[0].password);
-
-    if (!valid) return res.status(401).json({ msg: 'Invalid credentials' });
+    if (!rows.length) {
+      return res.status(401).json({ msg: 'Invalid credentials' });
+    }
 
     const user = rows[0];
+    const valid = await bcrypt.compare(password, user.password);
 
-    // Generate a new session token on each successful login
+    if (!valid) {
+      return res.status(401).json({ msg: 'Invalid credentials' });
+    }
+
     const sessionToken = generateSessionToken();
+
     await db.query(
-      'UPDATE users SET session_token = ? WHERE id = ?',
+      'UPDATE users SET session_token=? WHERE id=?',
       [sessionToken, user.id]
     );
 
-    console.log('✅ User logged in:', email);
-    res.json({ 
+    res.json({
       message: 'Login success',
       token: sessionToken,
       user: { id: user.id, email: user.email }
     });
+
   } catch (err) {
     console.error('❌ Login error:', err);
-    res.status(500).json({ msg: 'Login failed', error: err.message });
+    res.status(500).json({ msg: 'Login failed' });
+  }
+});
+
+// =============================
+// LOGOUT
+// =============================
+router.post('/logout', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(400).json({ msg: 'Token required' });
+
+    const token = authHeader.split(' ')[1];
+
+    await db.query(
+      'UPDATE users SET session_token=NULL WHERE session_token=?',
+      [token]
+    );
+
+    res.json({ message: 'Logged out successfully' });
+  } catch (err) {
+    res.status(500).json({ msg: 'Logout failed' });
   }
 });
 

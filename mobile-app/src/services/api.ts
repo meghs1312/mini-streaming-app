@@ -1,8 +1,9 @@
 import axios from 'axios';
 import { getToken } from './storage';
+import { API_URL } from '../config';
 
 const API = axios.create({
-  baseURL: 'http://10.0.2.2:5000',
+  baseURL: API_URL,
 });
 
 API.interceptors.request.use(
@@ -10,6 +11,10 @@ API.interceptors.request.use(
     const token = await getToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    // Required for localtunnel (.loca.lt) to skip "Click to continue" interstitial
+    if (API_URL.includes('loca.lt')) {
+      config.headers['Bypass-Tunnel-Reminder'] = 'true';
     }
     return config;
   },

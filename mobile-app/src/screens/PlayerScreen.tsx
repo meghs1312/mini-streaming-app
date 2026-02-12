@@ -19,7 +19,7 @@ const { width, height } = Dimensions.get('window');
 interface QualityOption {
   label: string;
   resolution?: string;
-  url?: string; // ⭐ ADDED
+  url?: string;
 }
 
 export default function PlayerScreen({ route, navigation }: any) {
@@ -27,7 +27,7 @@ export default function PlayerScreen({ route, navigation }: any) {
 
   const videoRef = useRef<Video>(null);
 
-  // ⭐ NEW STATE (IMPORTANT)
+
   // Start from the stream_url coming from the backend/database
   const [currentUrl, setCurrentUrl] = useState(video.stream_url);
 
@@ -39,6 +39,16 @@ export default function PlayerScreen({ route, navigation }: any) {
   const [duration, setDuration] = useState(0);
   const [position, setPosition] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Auto-hide controls after 3 seconds
+  useEffect(() => {
+    if (showControls && !isLoading) {
+      const timer = setTimeout(() => {
+        setShowControls(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [showControls, isLoading, isPlaying]);
 
   const [availableQualities, setAvailableQualities] =
     useState<QualityOption[]>([]);
@@ -182,6 +192,65 @@ export default function PlayerScreen({ route, navigation }: any) {
   };
 
   // =====================================
+  // PLAY/PAUSE TOGGLE
+  // =====================================
+  const togglePlayPause = async () => {
+    if (videoRef.current) {
+      try {
+        if (isPlaying) {
+          await videoRef.current.pauseAsync();
+          console.log('Video paused');
+        } else {
+          await videoRef.current.playAsync();
+          console.log('Video playing');
+        }
+      } catch (e) {
+        console.log('Error toggling play/pause', e);
+      }
+    }
+  };
+
+  // =====================================
+  // FORWARD (SKIP 10 SECONDS)
+  // =====================================
+  const handleForward = async () => {
+    if (videoRef.current && duration > 0) {
+      try {
+        const newPosition = Math.min(position + 10000, duration);
+        await videoRef.current.setPositionAsync(newPosition);
+        console.log('Forwarded to:', newPosition);
+      } catch (e) {
+        console.log('Error forwarding', e);
+      }
+    }
+  };
+
+  // =====================================
+  // BACKWARD (REWIND 10 SECONDS)
+  // =====================================
+  const handleBackward = async () => {
+    if (videoRef.current && position > 0) {
+      try {
+        const newPosition = Math.max(position - 10000, 0);
+        await videoRef.current.setPositionAsync(newPosition);
+        console.log('Rewound to:', newPosition);
+      } catch (e) {
+        console.log('Error rewinding', e);
+      }
+    }
+  };
+
+  // =====================================
+  // FORMAT TIME (MM:SS)
+  // =====================================
+  const formatTime = (millis: number) => {
+    const totalSeconds = Math.floor(millis / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  // =====================================
   // UI
   // =====================================
   if (error) {
@@ -207,17 +276,65 @@ export default function PlayerScreen({ route, navigation }: any) {
       <TouchableOpacity
         style={[styles.videoContainer, isFullscreen && styles.videoContainerFullscreen]}
         activeOpacity={1}
+        onPress={() => setShowControls(!showControls)}
       >
         <Video
           ref={videoRef}
           source={{ uri: currentUrl }}
           style={styles.video}
           resizeMode={ResizeMode.CONTAIN}
-          shouldPlay
+          shouldPlay={isPlaying}
           onPlaybackStatusUpdate={onPlaybackStatusUpdate}
         />
 
-        {isLoading && <ActivityIndicator size="large" color="#E50914" />}
+        {isLoading && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color="#E50914" />
+          </View>
+        )}
+
+        {/* PLAYBACK CONTROLS OVERLAY */}
+        {showControls && !isLoading && (
+          <View style={styles.controlsOverlay}>
+            {/* Center Play/Pause Button */}
+            <TouchableOpacity
+              style={styles.playPauseButton}
+              onPress={togglePlayPause}
+            >
+              <Text style={styles.playPauseIcon}>
+                {isPlaying ? '⏸' : '▶'}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Bottom Controls Bar */}
+            <View style={styles.bottomControls}>
+              {/* Rewind Button */}
+              <TouchableOpacity
+                style={styles.controlButton}
+                onPress={handleBackward}
+              >
+                <Text style={styles.controlIcon}>⏪</Text>
+                <Text style={styles.controlText}>10s</Text>
+              </TouchableOpacity>
+
+              {/* Time Display */}
+              <View style={styles.timeContainer}>
+                <Text style={styles.timeText}>
+                  {formatTime(position)} / {formatTime(duration)}
+                </Text>
+              </View>
+
+              {/* Forward Button */}
+              <TouchableOpacity
+                style={styles.controlButton}
+                onPress={handleForward}
+              >
+                <Text style={styles.controlIcon}>⏩</Text>
+                <Text style={styles.controlText}>10s</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
       </TouchableOpacity>
 
       {/* SETTINGS BUTTON OVERLAY */}
@@ -380,5 +497,77 @@ const styles = StyleSheet.create({
   fullscreenButtonText: {
     color: '#fff',
     fontSize: 16,
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  controlsOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  playPauseButton: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  playPauseIcon: {
+    fontSize: 32,
+    color: '#fff',
+  },
+  bottomControls: {
+    position: 'absolute',
+    bottom: 20,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  controlButton: {
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    minWidth: 70,
+  },
+  controlIcon: {
+    fontSize: 24,
+    color: '#fff',
+  },
+  controlText: {
+    color: '#fff',
+    fontSize: 12,
+    marginTop: 4,
+  },
+  timeContainer: {
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  timeText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });

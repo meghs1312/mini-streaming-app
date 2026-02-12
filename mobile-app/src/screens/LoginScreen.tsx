@@ -8,13 +8,13 @@ import {
   StatusBar,
   Alert,
 } from 'react-native';
-import API from '../services/api';
+import API from '../services/api'; // http calls to backend
 import { loginWithGoogle, loginWithGitHub } from '../services/oauth';
-import { saveToken, saveUser } from '../services/storage';
+import { saveToken, saveUser } from '../services/storage'; // auth token and user info in asyncstorage
 import ErrorScreen from '../components/ErrorScreen';
 
 export default function LoginScreen({ navigation }: any) {
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState('');    // hold values of user type
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -26,6 +26,7 @@ export default function LoginScreen({ navigation }: any) {
       const response = await API.post('/auth/login', {
         email,
         password,
+
       });
 
       const { token, user } = response.data;
